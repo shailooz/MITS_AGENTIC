@@ -1,0 +1,283 @@
+{
+  "name": "Daily Hacker News Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "99b288d1-2594-4c82-bc73-d838c009b2bd",
+      "name": "Daily at 8am",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://news.ycombinator.com/rss",
+        "options": {}
+      },
+      "id": "a4edcb9c-8d25-4115-ac8c-920994337307",
+      "name": "Fetch HN RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        464,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "options": {
+          "explicitArray": false
+        }
+      },
+      "id": "96e44963-ad60-4162-bc9b-919e55f4974c",
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        688,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "id": "7b9029a9-4889-49e4-b142-ad54f7accdb8",
+      "name": "Keep First 10",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1136,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "50b64c84-9232-4620-a2e7-5dd4b844dd5a",
+      "name": "Check Relevant",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1712,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "#all-aitraining",
+          "mode": "name"
+        },
+        "text": "={{ JSON.parse($json.output.replace(/```json\\n?|```/g, '').trim()).summary }}",
+        "otherOptions": {}
+      },
+      "id": "222c5276-aa50-4f0a-952f-c4ca86b311f7",
+      "name": "Post to #dev-channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.4,
+      "position": [
+        1936,
+        208
+      ],
+      "webhookId": "365a6305-4dee-4c2e-829a-f681f1bff0ce",
+      "credentials": {
+        "slackOAuth2Api": {
+          "id": "2bW7w26UPslqnvS6",
+          "name": "Slack OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analyze this article and determine if it is relevant to developers:\n\nTitle: {{ $json.title }}\nDescription: {{ $json.description }}\n\nRespond with JSON: { \"relevant\": true/false, \"summary\": \"brief summary if relevant\" }",
+        "options": {
+          "systemMessage": "You are a tech news curator. Analyze articles and determine if they are relevant to software developers. Return JSON with \"relevant\" (boolean) and \"summary\" (string) fields."
+        }
+      },
+      "id": "329e99b2-6c3b-441c-973a-1c327fd5a0fa",
+      "name": "Analyze Relevance",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1360,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {
+          "maxTokensToSample": 500,
+          "temperature": 0.3
+        }
+      },
+      "id": "7beb5a4b-6451-43ed-a292-5c6963cf3b9a",
+      "name": "Groq Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        432
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "IujUfbv0pqxDJbBn",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "rss.channel.item",
+        "options": {}
+      },
+      "id": "065ad1b5-f807-465d-8a19-fae72a032be7",
+      "name": "Split Items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        912,
+        208
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily at 8am": {
+      "main": [
+        [
+          {
+            "node": "Fetch HN RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch HN RSS": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Split Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Keep First 10": {
+      "main": [
+        [
+          {
+            "node": "Analyze Relevance",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Relevant": {
+      "main": [
+        [
+          {
+            "node": "Post to #dev-channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Relevance": {
+      "main": [
+        [
+          {
+            "node": "Check Relevant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Relevance",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Items": {
+      "main": [
+        [
+          {
+            "node": "Keep First 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "30b5f026-dc0c-4aa3-9b7b-d02ecb06fdff",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "29448c4d7111d580c6a1ab93bfaab16d24a9a8dec5835edafac73c7ff23244ea"
+  },
+  "id": "dX5INdQ6P7KBa9Q7",
+  "tags": []
+}

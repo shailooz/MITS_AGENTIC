@@ -1,0 +1,278 @@
+{
+  "name": "Requirement to Jira Tickets",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "6311076f-8de9-4cd3-9cef-f282d99a0630",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "create a registration page and login page \nwith name username, email and password while register and username and password while login",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a technical project manager. Analyze the given requirement and break it down into separate Jira tickets. For each ticket, provide: summary (brief title), description (detailed explanation), issueType (Task, Story, or Bug), and priority (Highest, High, Medium, Low, Lowest). Return a JSON object with a \"tickets\" array containing all the tickets."
+        }
+      },
+      "id": "f1239dd3-ebff-4e60-91e9-d4d66fa647bf",
+      "name": "Analyze Requirement",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        464,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"tickets\":[{\"summary\":\"Implement user authentication\",\"description\":\"Add login and registration functionality\",\"issueType\":\"Task\",\"priority\":\"High\"}]}"
+      },
+      "id": "92e9d34a-d2ef-42a7-9438-2c8aabb9962a",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        608,
+        480
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "message",
+              "value": "All Jira tickets created successfully",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4441d2d4-1c4b-4a03-9ba7-8872fa8bf639",
+      "name": "Completion Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1472,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "project": {
+          "__rl": true,
+          "value": "10000",
+          "mode": "list",
+          "cachedResultName": "AITraining"
+        },
+        "issueType": {
+          "__rl": true,
+          "value": "={{ $json.issueTypeId }}",
+          "mode": "id"
+        },
+        "summary": "={{ $json.summary }}",
+        "additionalFields": {
+          "description": "={{ $json.description }}",
+          "priority": {
+            "__rl": true,
+            "value": "={{ $json.priorityId }}",
+            "mode": "id"
+          }
+        }
+      },
+      "id": "6a127f95-89f2-4ddb-a045-b25b32509fb5",
+      "name": "Create Jira Issue",
+      "type": "n8n-nodes-base.jira",
+      "typeVersion": 1,
+      "position": [
+        1472,
+        304
+      ],
+      "credentials": {
+        "jiraSoftwareCloudApi": {
+          "id": "FQNRqoiCKYQTtEfA",
+          "name": "Jira SW Cloud account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "d20196a4-c936-47aa-bab7-728fa29a5252",
+      "name": "Loop Over Tickets",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1040,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "output.tickets",
+        "options": {}
+      },
+      "id": "fcede35b-13fd-4d29-afa0-940582150811",
+      "name": "Split Tickets",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        816,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "model": "llama-3.3-70b-versatile",
+        "options": {}
+      },
+      "id": "d80ca387-a767-48e9-ada4-bfb8c2ff43f5",
+      "name": "Groq Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        464,
+        496
+      ],
+      "credentials": {
+        "groqApi": {
+          "id": "IujUfbv0pqxDJbBn",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const issueTypeMap = {\n  \"Story\":   \"10003\",\n  \"Epic\":    \"10001\",\n  \"Subtask\": \"10002\",\n  \"Task\":    \"10003\",\n  \"Bug\":     \"10003\"\n};\n\nconst priorityMap = {\n  \"Highest\": \"1\",\n  \"High\":    \"2\",\n  \"Medium\":  \"3\",\n  \"Low\":     \"4\",\n  \"Lowest\":  \"5\"\n};\n\nreturn items.map(item => ({\n  json: {\n    ...item.json,\n    issueTypeId: issueTypeMap[item.json.issueType] ?? \"10003\",\n    priorityId:  priorityMap[item.json.priority]   ?? \"3\"\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        256
+      ],
+      "id": "d7a2f148-6c8e-4bff-b67f-927571c3f549",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Analyze Requirement",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Requirement": {
+      "main": [
+        [
+          {
+            "node": "Split Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analyze Requirement",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Jira Issue": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Tickets": {
+      "main": [
+        [
+          {
+            "node": "Completion Message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Tickets": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Tickets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyze Requirement",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create Jira Issue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d440a15a-8551-455f-8b00-c465d1cfba9f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "29448c4d7111d580c6a1ab93bfaab16d24a9a8dec5835edafac73c7ff23244ea"
+  },
+  "id": "sUwjJG3DqK8m0PDk",
+  "tags": []
+}

@@ -1,0 +1,491 @@
+{
+  "name": "Python Code Generator & Reviewer",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.codeRequirements }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are an expert Python developer. Generate clean, efficient, well-documented Python code based on user requirements. Always include:\n1. The complete code\n2. A clear explanation of how it works\n3. Time/space complexity analysis\n4. Potential improvements or optimizations\n\nBe critical and thorough in your analysis.",
+          "maxIterations": 5
+        }
+      },
+      "id": "707c66ed-4786-4df7-8937-6ba2e7a9c9b9",
+      "name": "Python Code Generator",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        464,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"code\": \"def fibonacci(n):\\n    if n <= 1:\\n        return n\\n    return fibonacci(n-1) + fibonacci(n-2)\", \"explanation\": \"This function calculates fibonacci numbers recursively\", \"language\": \"python\", \"complexity\": \"O(2^n)\", \"improvements\": [\"Add memoization\", \"Use iterative approach\"]}",
+        "autoFix": true
+      },
+      "id": "aff759f2-eb73-4437-81f2-88b54774154a",
+      "name": "Code Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        656,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Review this Python code critically:\n\nCode:\n{{ $json.output.code }}\n\nExplanation:\n{{ $json.output.explanation }}\n\nComplexity: {{ $json.output.complexity }}\n\nSuggested Improvements:\n{{ $json.output.improvements.join(\", \") }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a senior Python code reviewer with expertise in security, performance, and best practices. Critically analyze the provided code and provide:\n\n1. Overall quality score (0-10)\n2. Whether the code is approved (true/false)\n3. Critical issues that MUST be fixed\n4. Suggestions for improvement\n5. Security concerns\n6. Performance issues\n7. Code quality assessment\n8. Best practices recommendations\n9. A revised version of the code incorporating your feedback\n\nBe extremely thorough and critical. Do not approve code with security vulnerabilities or major performance issues.",
+          "maxIterations": 5
+        }
+      },
+      "id": "cdddd9bc-be66-43cb-9a82-8a2e75f81bdd",
+      "name": "Critical Code Reviewer",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        912,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\"overallScore\": 8.5, \"approved\": true, \"criticalIssues\": [\"Missing input validation\", \"No error handling\"], \"suggestions\": [\"Add type hints\", \"Include docstrings\", \"Add unit tests\"], \"securityConcerns\": [\"No input sanitization\"], \"performanceIssues\": [\"Exponential time complexity - use memoization\"], \"codeQuality\": \"Good structure but needs optimization\", \"bestPractices\": [\"Follow PEP 8\", \"Add logging\"], \"revisedCode\": \"def fibonacci(n: int) -> int:\\n    \\\"\\\"\\\"Calculate fibonacci number with memoization.\\\"\\\"\\\"\\n    if n <= 1:\\n        return n\\n    memo = {0: 0, 1: 1}\\n    for i in range(2, n + 1):\\n        memo[i] = memo[i-1] + memo[i-2]\\n    return memo[n]\"}",
+        "autoFix": true
+      },
+      "id": "61f20882-1c0b-48c1-8bfb-0d9a8760ce44",
+      "name": "Review Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        640
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.output.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              },
+              "id": "1268f2a4-132f-4745-9ea2-7b2987cd68fa"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d97657f8-d890-4caf-8fc8-1ba76c88c6a3",
+      "name": "Quality Gate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1360,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "status",
+              "value": "APPROVED",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "originalCode",
+              "value": "={{ $(\"Python Code Generator\").item.json.output.code }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "revisedCode",
+              "value": "={{ $json.output.revisedCode }}",
+              "type": "string"
+            },
+            {
+              "id": "4",
+              "name": "score",
+              "value": "={{ $json.output.overallScore }}",
+              "type": "number"
+            },
+            {
+              "id": "5",
+              "name": "suggestions",
+              "value": "={{ $json.output.suggestions }}",
+              "type": "array"
+            },
+            {
+              "id": "6",
+              "name": "performanceIssues",
+              "value": "={{ $json.output.performanceIssues }}",
+              "type": "array"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "58451304-97ab-41a7-94ba-8ced3893fcfd",
+      "name": "Approved Code",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1584,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1",
+              "name": "status",
+              "value": "REJECTED",
+              "type": "string"
+            },
+            {
+              "id": "2",
+              "name": "originalCode",
+              "value": "={{ $(\"Python Code Generator\").item.json.output.code }}",
+              "type": "string"
+            },
+            {
+              "id": "3",
+              "name": "score",
+              "value": "={{ $json.output.overallScore }}",
+              "type": "number"
+            },
+            {
+              "id": "4",
+              "name": "criticalIssues",
+              "value": "={{ $json.output.criticalIssues }}",
+              "type": "array"
+            },
+            {
+              "id": "5",
+              "name": "securityConcerns",
+              "value": "={{ $json.output.securityConcerns }}",
+              "type": "array"
+            },
+            {
+              "id": "6",
+              "name": "revisedCode",
+              "value": "={{ $json.output.revisedCode }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d4f6871e-872f-4a2d-adbd-f3d81063600e",
+      "name": "Rejected Code",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1584,
+        496
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Python Code Generator & Reviewer\n\nThis workflow generates Python code and performs critical code review.\n\n**Flow:**\n1. User fills form with code requirements\n2. AI generates initial code\n3. AI performs critical review\n4. Quality gate approves/rejects based on review\n5. Results shown to user",
+        "height": 232,
+        "width": 600,
+        "color": 2
+      },
+      "id": "f31a369c-a2c7-4dd5-bf83-fc57f7be8ffe",
+      "name": "Sticky Note e8fe429f",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        128,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## Code Review Criteria\n\n- Security vulnerabilities\n- Performance issues\n- Best practices\n- Type hints & documentation\n- Error handling\n- Input validation",
+        "height": 200,
+        "width": 600,
+        "color": 4
+      },
+      "id": "d65b6c2a-ed3e-4728-9420-e5f0fbf21d85",
+      "name": "Sticky Note 1524f451",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        752,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        544,
+        832
+      ],
+      "id": "e3a2276d-757c-4022-886e-904f05c90ead",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "IujUfbv0pqxDJbBn",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "qwen/qwen3-32b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        992,
+        832
+      ],
+      "id": "361fa346-af5a-4cf2-944f-70e71c00fff7",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "IujUfbv0pqxDJbBn",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "formTitle": "Python Code Generator",
+        "formDescription": "Describe the Python code you need and our AI will generate and review it for you.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Code Requirements",
+              "fieldType": "textarea",
+              "fieldName": "codeRequirements",
+              "placeholder": "Example: Write a function to sort a list using quicksort",
+              "requiredField": true
+            }
+          ]
+        },
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "87840585-7916-47fb-9ef7-6ac8aadc0d2f",
+      "name": "Code Request Form",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        240,
+        400
+      ],
+      "webhookId": "4e4ae090-b9e3-4c44-91c5-b7f47f39786c"
+    },
+    {
+      "parameters": {},
+      "id": "98b04aaf-47ea-42ed-a372-c43960ca3a83",
+      "name": "Merge Results",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1808,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "completion",
+        "completionTitle": "Code Review Complete",
+        "completionMessage": "=Status: {{ $json.status }}\n\nScore: {{ $json.score }}/10\n\nOriginal Code:\n{{ $json.originalCode }}\n\nRevised Code:\n{{ $json.revisedCode }}",
+        "options": {}
+      },
+      "id": "252556ab-87e1-4141-8e90-d7295e8b2d75",
+      "name": "Show Results",
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5,
+      "position": [
+        2032,
+        400
+      ],
+      "webhookId": "834f479c-1267-45b0-9a2a-368db1142db8"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Python Code Generator": {
+      "main": [
+        [
+          {
+            "node": "Critical Code Reviewer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Python Code Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Critical Code Reviewer": {
+      "main": [
+        [
+          {
+            "node": "Quality Gate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Critical Code Reviewer",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quality Gate": {
+      "main": [
+        [
+          {
+            "node": "Approved Code",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Rejected Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Code Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Python Code Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Review Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Critical Code Reviewer",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Request Form": {
+      "main": [
+        [
+          {
+            "node": "Python Code Generator",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved Code": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Results": {
+      "main": [
+        [
+          {
+            "node": "Show Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rejected Code": {
+      "main": [
+        [
+          {
+            "node": "Merge Results",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1a8d10eb-8813-4a1b-a612-e0c384151b88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "29448c4d7111d580c6a1ab93bfaab16d24a9a8dec5835edafac73c7ff23244ea"
+  },
+  "id": "dLJAjz3gMjMyZKag",
+  "tags": []
+}
